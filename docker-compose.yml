@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./knowledge_base:/app/knowledge_base
+      - ./chroma_db:/app/chroma_db
+      - /var/run/docker.sock:/var/run/docker.sock # For spawning sandbox containers
+    depends_on:
+      - chromadb
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./chroma_db:/chroma/chroma
+
+volumes:
+  chroma_db:

@@ -1,0 +1,285 @@
+/* Autonomous Lab TA - Debug Interface Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: #e0e0e0;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #00d9ff;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+}
+
+.subtitle {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* Workspace Layout */
+.workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 15px;
+    height: calc(100vh - 180px);
+}
+
+/* Panel Styles */
+.panel {
+    background: rgba(30, 30, 50, 0.9);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-header h2 {
+    font-size: 1rem;
+    color: #00d9ff;
+}
+
+/* Editor Panel */
+.editor-panel {
+    grid-row: span 2;
+}
+
+#code-editor {
+    flex: 1;
+    background: #0d1117;
+    border: none;
+    color: #c9d1d9;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    padding: 15px;
+    resize: none;
+    line-height: 1.5;
+}
+
+#code-editor:focus {
+    outline: none;
+}
+
+#language-select {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00d9ff, #0099cc);
+    color: #000;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Output Panel */
+#output-area {
+    flex: 1;
+    background: #0d1117;
+    color: #39d353;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    padding: 15px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.status {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.status.success {
+    background: rgba(57, 211, 83, 0.2);
+    color: #39d353;
+}
+
+.status.error {
+    background: rgba(248, 81, 73, 0.2);
+    color: #f85149;
+}
+
+.status.running {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+/* Chat Panel */
+.chat-panel {
+    grid-column: 2;
+    grid-row: span 2;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message {
+    padding: 12px 15px;
+    border-radius: 10px;
+    max-width: 90%;
+    line-height: 1.5;
+}
+
+.ta-message {
+    background: rgba(0, 217, 255, 0.1);
+    border-left: 3px solid #00d9ff;
+    align-self: flex-start;
+}
+
+.user-message {
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 3px solid #888;
+    align-self: flex-end;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+#chat-input {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 10px 15px;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #00d9ff;
+}
+
+/* Footer */
+footer {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.api-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 15px;
+    border-radius: 20px;
+}
+
+.status-indicator {
+    font-weight: 600;
+}
+
+.status-indicator.connected {
+    color: #39d353;
+}
+
+.status-indicator.disconnected {
+    color: #f85149;
+}
+
+/* Loading Animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 217, 255, 0.3);
+    border-top-color: #00d9ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Lab TA - Debug Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Autonomous Lab TA</h1>
+            <p class="subtitle">Debug & Testing Interface</p>
+        </header>
+
+        <main class="workspace">
+            <!-- Code Editor Panel -->
+            <section class="panel editor-panel">
+                <div class="panel-header">
+                    <h2>📝 Code Editor</h2>
+                    <select id="language-select">
+                        <option value="python">Python</option>
+                        <option value="cpp">C++</option>
+                        <option value="java">Java</option>
+                    </select>
+                </div>
+                <textarea id="code-editor" placeholder="# Write your code here...
+# Example:
+for i in range(5):
+    print(f'Hello {i}')"></textarea>
+                <div class="button-group">
+                    <button id="run-btn" class="btn btn-primary">▶ Run Code</button>
+                    <button id="clear-btn" class="btn btn-secondary">🗑 Clear</button>
+                </div>
+            </section>
+
+            <!-- Output Panel -->
+            <section class="panel output-panel">
+                <div class="panel-header">
+                    <h2>📤 Output</h2>
+                    <span id="execution-status" class="status"></span>
+                </div>
+                <pre id="output-area">Output will appear here...</pre>
+            </section>
+
+            <!-- Chat Panel -->
+            <section class="panel chat-panel">
+                <div class="panel-header">
+                    <h2>💬 Ask the TA</h2>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    <div class="message ta-message">
+                        <strong>TA:</strong> Hello! I'm your AI Teaching Assistant.
+                        Ask me about your code and I'll help guide you to the solution.
+                        I won't give you direct answers, but I'll help you understand the concepts!
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Ask about your code...">
+                    <button id="send-btn" class="btn btn-primary">Send</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- API Status -->
+        <footer>
+            <div class="api-status">
+                <span>API: </span>
+                <span id="api-status" class="status-indicator">Checking...</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
