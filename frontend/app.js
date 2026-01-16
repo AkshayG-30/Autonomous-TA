@@ -3,7 +3,7 @@
  * Handles API communication for testing the backend
  */
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = '/api';  // Relative URL since frontend is served from same server
 
 // DOM Elements
 const codeEditor = document.getElementById('code-editor');
@@ -17,10 +17,20 @@ const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const apiStatus = document.getElementById('api-status');
 
+// Modal Elements
+const modal = document.getElementById('source-modal');
+const modalContent = document.getElementById('modal-content');
+const modalTitle = document.getElementById('modal-title');
+const modalCategory = document.getElementById('modal-category');
+const modalContentText = document.getElementById('modal-content-text');
+const modalClose = document.getElementById('modal-close');
+const modalMinimize = document.getElementById('modal-minimize');
+const modalMaximize = document.getElementById('modal-maximize');
+
 // Check API Connection
 async function checkAPIStatus() {
     try {
-        const response = await fetch('http://localhost:8000/health');
+        const response = await fetch('/health');
         if (response.ok) {
             apiStatus.textContent = 'Connected';
             apiStatus.className = 'status-indicator connected';
@@ -122,8 +132,8 @@ async function sendMessage() {
         // Remove typing indicator
         document.getElementById('typing-indicator')?.remove();
 
-        // Add TA response
-        addChatMessage(result.response, 'ta');
+        // Add TA response with sources
+        addChatMessage(result.response, 'ta', result.sources);
 
     } catch (error) {
         document.getElementById('typing-indicator')?.remove();
@@ -132,12 +142,31 @@ async function sendMessage() {
 }
 
 // Add message to chat
-function addChatMessage(text, sender) {
+function addChatMessage(text, sender, sources = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}-message`;
 
     if (sender === 'ta') {
-        messageDiv.innerHTML = `<strong>TA:</strong> ${formatMessage(text)}`;
+        let html = `<strong>TA:</strong> ${formatMessage(text)}`;
+
+        // Add source references if available
+        if (sources && sources.length > 0) {
+            html += `
+                <div class="source-references">
+                    <div class="source-references-title">📚 Referenced Materials:</div>
+                    <div class="source-links">
+                        ${sources.map(src => `
+                            <span class="source-link" onclick="openSourceModal('${src.name}')" title="${src.snippet || 'Click to view'}">
+                                <span class="source-link-icon">📄</span>
+                                ${src.name}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        messageDiv.innerHTML = html;
     } else {
         messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
     }
@@ -146,11 +175,88 @@ function addChatMessage(text, sender) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// Format message (basic markdown-like formatting)
+// Format message using marked.js for full Markdown support
 function formatMessage(text) {
+    // Use marked.js if available, otherwise fallback to basic formatting
+    if (typeof marked !== 'undefined') {
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true,  // Convert line breaks to <br>
+            gfm: true,     // GitHub Flavored Markdown
+            sanitize: false
+        });
+        return marked.parse(text);
+    }
+
+    // Fallback if marked.js not loaded
     return text
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
         .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="external-link">$1 ↗</a>')
         .replace(/\n/g, '<br>');
+}
+
+// Open source modal with rendered Markdown
+async function openSourceModal(filename) {
+    try {
+        // Show loading state
+        modal.classList.add('active');
+        modalTitle.textContent = filename.replace('.md', '');
+        modalCategory.textContent = 'Loading...';
+        modalContentText.innerHTML = '<div class="loading-spinner">📖 Loading content...</div>';
+
+        // Fetch file content
+        const response = await fetch(`${API_BASE}/chat/knowledge/${encodeURIComponent(filename)}`);
+
+        if (!response.ok) {
+            throw new Error('File not found');
+        }
+
+        const data = await response.json();
+
+        // Update modal title with friendly name
+        const friendlyName = data.name.replace('.md', '').replace(/_/g, ' ');
+        modalTitle.textContent = friendlyName.charAt(0).toUpperCase() + friendlyName.slice(1);
+        modalCategory.textContent = data.category;
+
+        // Render Markdown as HTML for learner-friendly display
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                highlight: function (code, lang) {
+                    return `<code class="language-${lang}">${code}</code>`;
+                }
+            });
+            modalContentText.innerHTML = marked.parse(data.content);
+        } else {
+            // Fallback: show as text
+            modalContentText.textContent = data.content;
+        }
+
+    } catch (error) {
+        modalContentText.innerHTML = `<div class="error-message">❌ Error loading file: ${error.message}</div>`;
+        modalCategory.textContent = 'Error';
+    }
+}
+
+// Close modal
+function closeModal() {
+    modal.classList.remove('active');
+    modalContent.classList.remove('maximized', 'minimized');
+}
+
+// Minimize modal
+function minimizeModal() {
+    modalContent.classList.toggle('minimized');
+    modalContent.classList.remove('maximized');
+}
+
+// Maximize modal
+function maximizeModal() {
+    modalContent.classList.toggle('maximized');
+    modalContent.classList.remove('minimized');
 }
 
 // Clear editor
@@ -179,6 +285,25 @@ codeEditor.addEventListener('keydown', (e) => {
     }
 });
 
+// Modal event listeners
+modalClose.addEventListener('click', closeModal);
+modalMinimize.addEventListener('click', minimizeModal);
+modalMaximize.addEventListener('click', maximizeModal);
+
+// Close modal when clicking outside
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+    }
+});
+
 // Initial API check
 checkAPIStatus();
 setInterval(checkAPIStatus, 5000);
@@ -193,3 +318,4 @@ def greet(name):
 for i in range(3):
     print(greet(f"Student {i+1}"))
 `;
+

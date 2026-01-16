@@ -1,6 +1,6 @@
 """
-TA Agent - Simplified Version
-Uses direct Groq API calls instead of LangChain for Python 3.14 compatibility.
+TA Agent - RAG-powered Teaching Assistant
+Uses ChromaDB for context retrieval and Groq API for responses.
 """
 
 import os
@@ -8,6 +8,7 @@ from pathlib import Path
 from groq import Groq
 
 from app.core.config import settings
+from app.ai_engine.rag.ingest import get_vectorstore as get_rag_vectorstore
 
 
 # Load the Socratic TA prompt
@@ -19,75 +20,97 @@ def load_system_prompt():
     prompt_file = PROMPTS_DIR / "socratic_ta.txt"
     if prompt_file.exists():
         return prompt_file.read_text(encoding="utf-8")
-    return "You are a helpful teaching assistant."
+    return "You are a helpful teaching assistant for a programming course. Guide students using the Socratic method - ask leading questions rather than giving direct answers."
 
 
-def load_knowledge_base():
-    """Load knowledge base content from files."""
-    knowledge_base_path = Path(__file__).parent.parent.parent.parent.parent / "knowledge_base"
+def get_vectorstore():
+    """Get the ChromaDB vectorstore for RAG retrieval."""
+    try:
+        return get_rag_vectorstore()
+    except Exception as e:
+        print(f"Warning: Could not load vectorstore: {e}")
+        return None
+
+
+def retrieve_context(vectorstore, question: str, student_code: str, k: int = 3) -> tuple:
+    """Retrieve relevant context from the knowledge base using RAG.
     
-    content = []
+    Returns:
+        tuple: (context_string, list of source dicts with name, path, and snippet)
+    """
+    if vectorstore is None:
+        return "No knowledge base available.", []
     
-    # Load assignments
-    assignments_path = knowledge_base_path / "assignments"
-    if assignments_path.exists():
-        for file in assignments_path.glob("*.txt"):
-            content.append(f"=== {file.name} ===\n{file.read_text(encoding='utf-8')}")
-    
-    # Load syllabus
-    syllabus_path = knowledge_base_path / "syllabus"
-    if syllabus_path.exists():
-        for file in syllabus_path.glob("*.txt"):
-            content.append(f"=== {file.name} ===\n{file.read_text(encoding='utf-8')}")
-    
-    return "\n\n".join(content) if content else "No course materials loaded."
+    try:
+        # Combine question and code for better context matching
+        query = f"{question}\n\nStudent code: {student_code[:500]}"
+        
+        # Retrieve relevant documents
+        docs = vectorstore.similarity_search(query, k=k)
+        
+        if not docs:
+            return "No relevant context found in knowledge base.", []
+        
+        # Format the context and collect sources
+        context_parts = []
+        sources = []
+        seen_sources = set()  # Avoid duplicates
+        
+        for i, doc in enumerate(docs, 1):
+            source_path = doc.metadata.get("source", "")
+            source_name = Path(source_path).name if source_path else "unknown"
+            
+            context_parts.append(f"[Source: {source_name}]\n{doc.page_content}")
+            
+            # Add unique sources to the list
+            if source_name not in seen_sources:
+                seen_sources.add(source_name)
+                sources.append({
+                    "name": source_name,
+                    "path": source_path,
+                    "snippet": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
+                })
+        
+        return "\n\n---\n\n".join(context_parts), sources
+        
+    except Exception as e:
+        print(f"Error retrieving context: {e}")
+        return "Error retrieving context from knowledge base.", []
 
 
 # Initialize client
 def get_groq_client():
     """Get Groq client instance."""
-    return Groq(api_key=settings.groq_api_key)
-
-
-# Placeholder for vectorstore compatibility
-def get_vectorstore():
-    """Return None - using simple text search instead of ChromaDB for compatibility."""
-    return None
+    api_key = settings.groq_api_key
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not set. Please create a .env file in the backend folder with your Groq API key.")
+    return Groq(api_key=api_key)
 
 
 async def get_ta_response(vectorstore, question: str, student_code: str) -> dict:
     """
-    Get a response from the TA agent using direct Groq API.
+    Get a response from the TA agent using RAG + Groq API.
     
     Args:
-        vectorstore: Ignored (for API compatibility)
+        vectorstore: ChromaDB vectorstore for context retrieval
         question: The student's question
         student_code: The student's current code
     
     Returns:
         dict with 'answer' and 'sources' keys
     """
-    client = get_groq_client()
-    system_prompt = load_system_prompt()
-    knowledge_base = load_knowledge_base()
+    try:
+        client = get_groq_client()
+    except ValueError as e:
+        return {
+            "answer": str(e),
+            "sources": []
+        }
     
-    # Build the full prompt
-    full_prompt = f"""
-{system_prompt}
-
-## Lab Context (Course Materials)
-{knowledge_base}
-
-## Student's Current Code
-```
-{student_code}
-```
-
-## Student's Question
-{question}
-
-## Your Response (as the Socratic TA)
-"""
+    system_prompt = load_system_prompt()
+    
+    # Retrieve relevant context using RAG
+    context, sources = retrieve_context(vectorstore, question, student_code)
     
     try:
         # Call Groq API
@@ -95,19 +118,22 @@ async def get_ta_response(vectorstore, question: str, student_code: str) -> dict
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"""
-Lab Context:
-{knowledge_base[:3000]}  # Limit context size
+## Relevant Course Materials
+{context}
 
-Student's Code:
-```
+## Student's Code
+```python
 {student_code}
 ```
 
-Student's Question: {question}
+## Student's Question
+{question}
+
+Please respond as a helpful teaching assistant. Use the Socratic method: guide the student to discover the answer themselves through questions, hints, and explanations. Reference the course materials when relevant.
 """}
             ],
             model=settings.groq_model,
-            temperature=0.1,
+            temperature=0.3,
             max_tokens=1024
         )
         
@@ -115,12 +141,18 @@ Student's Question: {question}
         
         return {
             "answer": answer,
-            "sources": [{"source": "knowledge_base", "content": "Course materials"}]
+            "sources": sources  # Return the actual source files with details
         }
     
     except Exception as e:
+        error_msg = str(e)
+        if "authentication" in error_msg.lower() or "api key" in error_msg.lower():
+            return {
+                "answer": "API key error. Please check your GROQ_API_KEY in the .env file.",
+                "sources": []
+            }
         return {
-            "answer": f"I'm having trouble responding right now. Error: {str(e)}",
+            "answer": f"I'm having trouble responding right now. Error: {error_msg}",
             "sources": []
         }
 
@@ -130,3 +162,4 @@ def get_ta_response_sync(vectorstore, question: str, student_code: str) -> dict:
     """Synchronous version of get_ta_response."""
     import asyncio
     return asyncio.run(get_ta_response(vectorstore, question, student_code))
+

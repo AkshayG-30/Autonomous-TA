@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autonomous Lab TA - Debug Interface</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
@@ -71,6 +73,28 @@ for i in range(5):
                 <span id="api-status" class="status-indicator">Checking...</span>
             </div>
         </footer>
+    </div>
+
+    <!-- Source Reference Modal -->
+    <div id="source-modal" class="modal">
+        <div class="modal-content" id="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span class="modal-icon">📚</span>
+                    <h3 id="modal-title">Learning Resource</h3>
+                    <span id="modal-category" class="modal-category"></span>
+                </div>
+                <div class="modal-controls">
+                    <button id="modal-minimize" class="modal-btn" title="Minimize">─</button>
+                    <button id="modal-maximize" class="modal-btn" title="Maximize">□</button>
+                    <button id="modal-close" class="modal-btn modal-close-btn" title="Close">✕</button>
+                </div>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Rendered Markdown content goes here -->
+                <div id="modal-content-text" class="markdown-body"></div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
